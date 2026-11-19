@@ -6,7 +6,7 @@ import http from 'node:http';
 import { exec } from 'node:child_process';
 import {
   PortfolioData,
-  SAMPLE_PORTFOLIO,
+  SAMPLE_PORTFOLIO, normalizePortfolioData,
   THEME_CATALOG,
   ThemeId,
   buildCustomAiPrompt,
@@ -460,7 +460,7 @@ async function main() {
       })
     ).trim();
     const raw = await fs.readFile(path.resolve(jsonPath), 'utf-8');
-    data = JSON.parse(raw) as PortfolioData;
+    data = normalizePortfolioData(JSON.parse(raw));
     data.meta.lastUpdated = new Date().toISOString().split('T')[0];
     p.log.success(`Loaded profile for ${data.identity.fullName}!`);
   } else {

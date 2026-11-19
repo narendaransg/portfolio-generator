@@ -5,6 +5,8 @@ export const SAMPLE_PORTFOLIO: PortfolioData = {
     githubUsername: 'alex-builder',
     repoName: 'alex-builder.github.io',
     theme: 'bento',
+    accentColor: '',
+    fontChoice: 'default',
     stack: 'static-html',
     lastUpdated: new Date().toISOString().split('T')[0],
   },
@@ -52,6 +54,18 @@ export const SAMPLE_PORTFOLIO: PortfolioData = {
       repoUrl: 'https://github.com/alex-builder/8bit-cpu',
     },
   ],
+  achievements: [
+    {
+      title: 'National RTL Design Hackathon Finalist',
+      issuer: 'ChipThink Hardware Challenge',
+      year: '2026',
+    },
+    {
+      title: 'NPTEL Elite + Silver — Digital IC Design',
+      issuer: 'IIT Madras / NPTEL',
+      year: '2025',
+    },
+  ],
   skills: [
     { category: 'Core Engineering', items: ['Digital Logic', 'SystemVerilog', 'Computer Architecture', 'RTL Verification'] },
     { category: 'Tools & Workflow', items: ['Linux / WSL', 'Git & GitHub', 'Python', 'Bash / Zsh'] },
@@ -65,6 +79,7 @@ export const SAMPLE_PORTFOLIO: PortfolioData = {
     education: true,
     experience: true,
     projects: true,
+    achievements: true,
     skills: true,
   },
 };

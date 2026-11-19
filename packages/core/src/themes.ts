@@ -1,4 +1,4 @@
-import { PortfolioData, ThemeId } from './schema.js';
+import { FontChoice, PortfolioData, ThemeId } from './schema.js';
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -56,11 +56,32 @@ function esc(str: string | undefined): string {
     .replace(/'/g, '&#39;');
 }
 
-function getThemeCss(theme: ThemeId): string {
+function sanitizeHexColor(color: string | undefined): string | null {
+  if (!color) return null;
+  const trimmed = color.trim();
+  return /^#[0-9a-fA-F]{6}$/.test(trimmed) ? trimmed : null;
+}
+
+function getFontOverrideCss(choice: FontChoice | undefined): string {
+  switch (choice) {
+    case 'sans':
+      return `body, h1, h2, h3 { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important; }`;
+    case 'serif':
+      return `body { font-family: Georgia, 'Times New Roman', serif !important; } h1, h2, h3 { font-family: Georgia, 'Times New Roman', serif !important; }`;
+    case 'mono':
+      return `body, h1, h2, h3 { font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace !important; }`;
+    default:
+      return '';
+  }
+}
+
+function getThemeCss(theme: ThemeId, customAccent: string | null): string {
+  const accentOverride = customAccent ? `:root { --accent: ${customAccent} !important; }` : '';
   switch (theme) {
     case 'terminal':
       return `
         :root { --bg: #0b0f14; --surface: #131a22; --text: #e6edf3; --muted: #8b949e; --accent: #3fb950; --border: #26303c; --font: 'JetBrains Mono', 'Fira Code', monospace; --heading-font: 'JetBrains Mono', monospace; }
+        ${accentOverride}
         body { background: var(--bg); color: var(--text); font-family: var(--font); }
         .card { border: 1px solid var(--border); background: var(--surface); border-radius: 6px; padding: 1.25rem; }
         h2::before { content: "$ "; color: var(--accent); }
@@ -68,6 +89,7 @@ function getThemeCss(theme: ThemeId): string {
     case 'bento':
       return `
         :root { --bg: #f4f6f9; --surface: #ffffff; --text: #111827; --muted: #4b5563; --accent: #2563eb; --border: #e5e7eb; --font: system-ui, -apple-system, sans-serif; --heading-font: system-ui, -apple-system, sans-serif; }
+        ${accentOverride}
         body { background: var(--bg); color: var(--text); font-family: var(--font); }
         .grid-bento { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; }
         .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
@@ -75,6 +97,7 @@ function getThemeCss(theme: ThemeId): string {
     case 'editorial':
       return `
         :root { --bg: #faf8f5; --surface: #ffffff; --text: #1c1917; --muted: #57534e; --accent: #9a3412; --border: #e7e5e4; --font: system-ui, -apple-system, sans-serif; --heading-font: Georgia, 'Times New Roman', serif; }
+        ${accentOverride}
         body { background: var(--bg); color: var(--text); font-family: var(--font); }
         h1, h2, h3 { font-family: var(--heading-font); }
         .card { border-left: 3px solid var(--accent); padding: 0.75rem 0 0.75rem 1.25rem; margin-bottom: 1.25rem; }
@@ -82,6 +105,7 @@ function getThemeCss(theme: ThemeId): string {
     case 'split-pane':
       return `
         :root { --bg: #ffffff; --surface: #f8fafc; --text: #0f172a; --muted: #475569; --accent: #0f766e; --border: #e2e8f0; --font: system-ui, -apple-system, sans-serif; --heading-font: system-ui, -apple-system, sans-serif; }
+        ${accentOverride}
         body { background: var(--bg); color: var(--text); font-family: var(--font); }
         .layout-split { display: grid; grid-template-columns: 300px 1fr; gap: 2.5rem; align-items: start; }
         .sidebar { position: sticky; top: 2rem; background: var(--surface); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border); }
@@ -92,6 +116,7 @@ function getThemeCss(theme: ThemeId): string {
     default:
       return `
         :root { --bg: #ffffff; --surface: #fafafa; --text: #18181b; --muted: #52525b; --accent: #18181b; --border: #e4e4e7; --font: system-ui, -apple-system, sans-serif; --heading-font: system-ui, -apple-system, sans-serif; }
+        ${accentOverride}
         body { background: var(--bg); color: var(--text); font-family: var(--font); }
         .card { border-bottom: 1px solid var(--border); padding: 1.25rem 0; }
       `;
@@ -106,7 +131,9 @@ export function renderPortfolioHtml(
     return customOverride.html;
   }
 
-  const themeCss = customOverride?.css || getThemeCss(data.meta.theme);
+  const customAccent = sanitizeHexColor(data.meta.accentColor);
+  const themeCss = customOverride?.css || getThemeCss(data.meta.theme, customAccent);
+  const fontCss = getFontOverrideCss(data.meta.fontChoice);
   const isSplit = data.meta.theme === 'split-pane';
   const isBento = data.meta.theme === 'bento';
 
@@ -197,6 +224,28 @@ export function renderPortfolioHtml(
         </section>`
       : '';
 
+  const achievementsHtml =
+    data.sectionsEnabled.achievements && data.achievements?.length
+      ? `<section id="achievements">
+          <h2>Certifications &amp; Achievements</h2>
+          <div class="${isBento ? 'grid-bento' : 'stack'}">
+            ${data.achievements
+              .map(
+                (ach) => `
+              <article class="card">
+                <div class="row-between">
+                  <h3>${esc(ach.title)}</h3>
+                  <span class="muted">${esc(ach.year)}</span>
+                </div>
+                <p class="muted">${esc(ach.issuer)}</p>
+                ${ach.url ? `<div class="card-links"><a href="${esc(ach.url)}" target="_blank" rel="noopener">Verify Credential &rarr;</a></div>` : ''}
+              </article>`
+              )
+              .join('')}
+          </div>
+        </section>`
+      : '';
+
   const skillsHtml =
     data.sectionsEnabled.skills && data.skills.length
       ? `<section id="skills">
@@ -225,6 +274,7 @@ export function renderPortfolioHtml(
       ${projectsHtml}
       ${experienceHtml}
       ${educationHtml}
+      ${achievementsHtml}
       ${skillsHtml}
     </main>
   `;
@@ -260,6 +310,7 @@ export function renderPortfolioHtml(
     .row-between { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; }
     footer { margin-top: 3.5rem; padding-top: 1.25rem; border-top: 1px solid var(--border); text-align: center; font-size: 0.85rem; color: var(--muted); }
     ${themeCss}
+    ${fontCss}
   </style>
 </head>
 <body>
@@ -274,10 +325,6 @@ export function renderPortfolioHtml(
 </html>`;
 }
 
-/**
- * Generates the exact prompt a layman can copy into ChatGPT, Claude, or Gemini
- * to craft a custom HTML portfolio while guaranteeing all real links/sections stay intact.
- */
 export function buildCustomAiPrompt(data: PortfolioData): string {
   return `You are an expert front-end web designer. Build a single-file, responsive, accessible portfolio website (index.html with embedded <style> and optional lightweight <script>) using ONLY the exact profile data below.
 
@@ -294,9 +341,6 @@ ${JSON.stringify(data, null, 2)}
 `;
 }
 
-/**
- * Validates HTML returned by an external AI before bundling it into the ZIP.
- */
 export function validateCustomAiHtml(html: string, data: PortfolioData): { valid: boolean; warnings: string[] } {
   const warnings: string[] = [];
   const trimmed = html.trim();

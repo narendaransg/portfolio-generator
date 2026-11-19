@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  FontChoice,
   PortfolioData,
   SAMPLE_PORTFOLIO,
   THEME_CATALOG,
@@ -9,11 +10,12 @@ import {
   generateAiCustomizeGuide,
   generateDeployGuide,
   generateLinkedInSyncGuide,
+  normalizePortfolioData,
   renderPortfolioHtml,
   validateCustomAiHtml,
 } from '@portfolio-gen/core';
 
-const STORAGE_KEY = 'portfolio_generator_state_v1';
+const STORAGE_KEY = 'portfolio_generator_state_v2';
 
 const STAGES = [
   { id: 0, label: '1. Identity' },
@@ -21,59 +23,50 @@ const STAGES = [
   { id: 2, label: '3. Education' },
   { id: 3, label: '4. Experience' },
   { id: 4, label: '5. Projects' },
-  { id: 5, label: '6. Skills' },
-  { id: 6, label: '7. Links' },
-  { id: 7, label: '8. Theme & AI' },
+  { id: 5, label: '6. Achievements' },
+  { id: 6, label: '7. Skills' },
+  { id: 7, label: '8. Links' },
+  { id: 8, label: '9. Theme & AI' },
+];
+
+const ACCENT_PRESETS = [
+  { label: 'Theme Default', value: '' },
+  { label: 'Ocean Blue', value: '#2563eb' },
+  { label: 'Emerald', value: '#059669' },
+  { label: 'Amber / Copper', value: '#d97706' },
+  { label: 'Violet', value: '#7c3aed' },
+  { label: 'Rose', value: '#e11d48' },
 ];
 
 function createBlankPortfolio(): PortfolioData {
-  return {
+  return normalizePortfolioData({
     meta: {
       githubUsername: '',
       repoName: 'username.github.io',
       theme: 'bento',
+      accentColor: '',
+      fontChoice: 'default',
       stack: 'static-html',
       lastUpdated: new Date().toISOString().split('T')[0],
-    },
-    identity: {
-      fullName: '',
-      headline: '',
-      location: '',
-      avatarUrl: '',
-    },
-    about: {
-      bio: '',
-      lookingFor: '',
     },
     education: [{ degree: '', institution: '', period: '', highlights: '' }],
     experience: [{ role: '', organization: '', period: '', bullets: [''] }],
     projects: [{ title: '', summary: '', techStack: [], impact: '', repoUrl: '', liveUrl: '' }],
+    achievements: [],
     skills: [
       { category: 'Core Skills', items: [] },
       { category: 'Tools & Technologies', items: [] },
     ],
-    links: {
-      email: '',
-      github: '',
-      linkedin: '',
-      resumeUrl: '',
-    },
-    sectionsEnabled: {
-      education: true,
-      experience: true,
-      projects: true,
-      skills: true,
-    },
-  };
+  });
 }
 
 export function App() {
   const [data, setData] = useState<PortfolioData>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) return JSON.parse(saved) as PortfolioData;
+      if (saved) return normalizePortfolioData(JSON.parse(saved));
     } catch {
-      // ignore corrupted storage
+      // ignore storage errors
     }
     return structuredClone(SAMPLE_PORTFOLIO);
   });
@@ -83,13 +76,14 @@ export function App() {
   const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
   const [customAiHtml, setCustomAiHtml] = useState<string>('');
   const [copiedKey, setCopiedKey] = useState<string>('');
+  const [importBanner, setImportBanner] = useState<string>('');
   const [linkedinChecks, setLinkedinChecks] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch {
-      // ignore storage quota errors
+      // ignore quota errors
     }
   }, [data]);
 
@@ -133,9 +127,10 @@ export function App() {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const parsed = JSON.parse(String(reader.result)) as PortfolioData;
-        parsed.meta.lastUpdated = new Date().toISOString().split('T')[0];
+        const parsed = normalizePortfolioData(JSON.parse(String(reader.result)));
         setData(parsed);
+        setImportBanner(`Imported profile for ${parsed.identity.fullName || 'user'}!`);
+        setTimeout(() => setImportBanner(''), 3500);
       } catch {
         alert('Invalid portfolio.json file.');
       }
@@ -171,7 +166,6 @@ Always open to feedback, ideas, and connecting with folks working in similar are
 
   return (
     <div>
-      {/* Top Action Bar */}
       <header className="topbar">
         <h1>
           GitHub.io Portfolio Generator
@@ -179,12 +173,9 @@ Always open to feedback, ideas, and connecting with folks working in similar are
         </h1>
 
         <div className="toolbar-actions">
-          <button onClick={() => setData(structuredClone(SAMPLE_PORTFOLIO))}>
-            Load Demo Data
-          </button>
-          <button onClick={() => setData(createBlankPortfolio())}>
-            Start Blank
-          </button>
+          {importBanner && <span className="badge">{importBanner}</span>}
+          <button onClick={() => setData(structuredClone(SAMPLE_PORTFOLIO))}>Load Demo Data</button>
+          <button onClick={() => setData(createBlankPortfolio())}>Start Blank</button>
           <label className="file-btn">
             Import portfolio.json
             <input type="file" accept=".json" hidden onChange={handleImportJson} />
@@ -195,9 +186,7 @@ Always open to feedback, ideas, and connecting with folks working in similar are
         </div>
       </header>
 
-      {/* Main Split Workspace */}
       <div className="workspace">
-        {/* Left: Guided 8-Step Form */}
         <aside className="editor-pane">
           <nav className="stage-pills" aria-label="Portfolio Builder Steps">
             {STAGES.map((s) => (
@@ -295,7 +284,7 @@ Always open to feedback, ideas, and connecting with folks working in similar are
             <div>
               <div className="guide-callout">
                 <strong>Your Story:</strong> Write 2–4 natural sentences about what you build or
-                study. Avoid buzzword soup—clear human language wins every time.
+                study. Clear human language wins every time.
               </div>
               <div className="field">
                 <label>About / Bio *</label>
@@ -621,8 +610,99 @@ Always open to feedback, ideas, and connecting with folks working in similar are
             </div>
           )}
 
-          {/* Stage 5: Skills */}
+          {/* Stage 5: Certifications & Achievements */}
           {stage === 5 && (
+            <div>
+              <div className="guide-callout">
+                <strong>Certifications &amp; Achievements (Optional):</strong> Add hackathons,
+                NPTEL/Coursera certifications, exam ranks, or publications. Leave empty to hide this
+                section automatically.
+              </div>
+              {data.achievements.map((ach, idx) => (
+                <div key={idx} className="item-box">
+                  <div className="item-header">
+                    <span>Achievement #{idx + 1}</span>
+                    <button
+                      className="danger"
+                      onClick={() =>
+                        setData({
+                          ...data,
+                          achievements: data.achievements.filter((_, i) => i !== idx),
+                        })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                  <div className="field">
+                    <label>Title / Certificate Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., NPTEL Elite + Silver — Digital IC Design"
+                      value={ach.title}
+                      onChange={(e) => {
+                        const next = [...data.achievements];
+                        next[idx] = { ...ach, title: e.target.value };
+                        setData({ ...data, achievements: next });
+                      }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Issuer / Event</label>
+                    <input
+                      type="text"
+                      placeholder="e.g., IIT Madras / NPTEL"
+                      value={ach.issuer}
+                      onChange={(e) => {
+                        const next = [...data.achievements];
+                        next[idx] = { ...ach, issuer: e.target.value };
+                        setData({ ...data, achievements: next });
+                      }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Year</label>
+                    <input
+                      type="text"
+                      placeholder="2026"
+                      value={ach.year}
+                      onChange={(e) => {
+                        const next = [...data.achievements];
+                        next[idx] = { ...ach, year: e.target.value };
+                        setData({ ...data, achievements: next });
+                      }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Verification URL (Optional)</label>
+                    <input
+                      type="url"
+                      value={ach.url || ''}
+                      onChange={(e) => {
+                        const next = [...data.achievements];
+                        next[idx] = { ...ach, url: e.target.value };
+                        setData({ ...data, achievements: next });
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={() =>
+                  setData({
+                    ...data,
+                    sectionsEnabled: { ...data.sectionsEnabled, achievements: true },
+                    achievements: [...data.achievements, { title: '', issuer: '', year: '2026' }],
+                  })
+                }
+              >
+                + Add Certification / Achievement
+              </button>
+            </div>
+          )}
+
+          {/* Stage 6: Skills */}
+          {stage === 6 && (
             <div>
               <div className="guide-callout">
                 <strong>Skills &amp; Tools:</strong> Group your skills cleanly and pin the same top
@@ -690,8 +770,8 @@ Always open to feedback, ideas, and connecting with folks working in similar are
             </div>
           )}
 
-          {/* Stage 6: Links */}
-          {stage === 6 && (
+          {/* Stage 7: Links */}
+          {stage === 7 && (
             <div>
               <div className="guide-callout">
                 <strong>Privacy Reminder:</strong> Never publish personal phone numbers or home
@@ -741,13 +821,13 @@ Always open to feedback, ideas, and connecting with folks working in similar are
             </div>
           )}
 
-          {/* Stage 7: Theme & BYO-AI */}
-          {stage === 7 && (
+          {/* Stage 8: Theme, Colors, Fonts & BYO-AI */}
+          {stage === 8 && (
             <div>
               <div className="guide-callout">
-                <strong>Pick a Visual Theme or Bring Your Own AI Design:</strong> Click any preset
-                below to preview it live on the right—or choose <em>Custom AI Template</em> to
-                generate a prompt for ChatGPT, Claude, or Gemini!
+                <strong>Customize Look &amp; Feel:</strong> Pick any preset theme, tweak accent
+                color &amp; typography, or choose <em>Custom AI Template</em> to build a bespoke
+                layout in ChatGPT, Claude, or Gemini!
               </div>
 
               {THEME_CATALOG.map((theme) => (
@@ -762,6 +842,61 @@ Always open to feedback, ideas, and connecting with folks working in similar are
                   <p>{theme.tagline}</p>
                 </div>
               ))}
+
+              {data.meta.theme !== 'custom-ai' && (
+                <div className="item-box" style={{ marginTop: '0.85rem' }}>
+                  <div className="item-header">
+                    <span>Accent Color &amp; Typography Polish</span>
+                  </div>
+                  <div className="field">
+                    <label>Accent Color</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                      {ACCENT_PRESETS.map((preset) => (
+                        <button
+                          key={preset.label}
+                          className={(data.meta.accentColor || '') === preset.value ? 'active' : ''}
+                          onClick={() =>
+                            setData({
+                              ...data,
+                              meta: { ...data.meta, accentColor: preset.value },
+                            })
+                          }
+                        >
+                          {preset.value && (
+                            <span
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                background: preset.value,
+                                display: 'inline-block',
+                              }}
+                            />
+                          )}
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label>Font Style</label>
+                    <select
+                      value={data.meta.fontChoice || 'default'}
+                      onChange={(e) =>
+                        setData({
+                          ...data,
+                          meta: { ...data.meta, fontChoice: e.target.value as FontChoice },
+                        })
+                      }
+                    >
+                      <option value="default">Theme Default</option>
+                      <option value="sans">Clean Sans-Serif</option>
+                      <option value="serif">Classic Editorial Serif</option>
+                      <option value="mono">Developer Monospace</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
               {data.meta.theme === 'custom-ai' && (
                 <div className="item-box" style={{ marginTop: '1rem' }}>
@@ -815,7 +950,6 @@ Always open to feedback, ideas, and connecting with folks working in similar are
             </div>
           )}
 
-          {/* Stage Navigation Footer */}
           <div
             style={{
               display: 'flex',

@@ -3,7 +3,9 @@
   "private": true,
   "scripts": {
     "build:core": "pnpm --filter @portfolio-gen/core build",
+    "build:web": "pnpm --filter @portfolio-gen/core build && pnpm --filter @portfolio-gen/web build",
+    "test": "pnpm --filter @portfolio-gen/core build && node scripts/smoke-test.mjs",
     "cli": "pnpm --filter @portfolio-gen/core build && pnpm --filter @portfolio-gen/cli start",
-    "web": "pnpm --filter @portfolio-gen/web dev"
+    "web": "pnpm --filter @portfolio-gen/core build && pnpm --filter @portfolio-gen/web dev"
   }
 }
