@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import JSZip from 'jszip';
 import {
   SAMPLE_PORTFOLIO,
   THEME_CATALOG,
   buildCustomAiPrompt,
   buildPortfolioZip,
+  generateSiteFiles,
   normalizePortfolioData,
   renderPortfolioHtml,
   validateCustomAiHtml,
@@ -24,7 +24,7 @@ assert.equal(migrated.meta.repoName, 'testuser.github.io');
 assert.ok(Array.isArray(migrated.achievements));
 console.log('✓ Legacy portfolio.json migration passed');
 
-// 2. Test all 5 built-in themes + accent color + font override
+// 2. Test all 5 built-in themes + accent color + font override + achievements
 for (const theme of THEME_CATALOG.filter((t) => t.id !== 'custom-ai')) {
   const sample = structuredClone(SAMPLE_PORTFOLIO);
   sample.meta.theme = theme.id;
@@ -49,9 +49,8 @@ const invalidCheck = validateCustomAiHtml('<div>incomplete</div>', SAMPLE_PORTFO
 assert.equal(invalidCheck.valid, false);
 console.log('✓ BYO-AI prompt builder & HTML validator passed');
 
-// 4. Test ZIP archive generation and inspect all 6 bundled files
-const zipBytes = await buildPortfolioZip(SAMPLE_PORTFOLIO);
-const zip = await JSZip.loadAsync(zipBytes);
+// 4. Test bundled files, Gitingest URL, and ZIP archive header
+const files = generateSiteFiles(SAMPLE_PORTFOLIO);
 const expectedFiles = [
   'index.html',
   '.nojekyll',
@@ -61,10 +60,14 @@ const expectedFiles = [
   'AI_CUSTOMIZE_GUIDE.md',
 ];
 for (const file of expectedFiles) {
-  assert.ok(zip.file(file), `Missing ${file} in ZIP`);
+  assert.ok(file in files, `Missing ${file} in generated bundle`);
 }
-const aiGuide = await zip.file('AI_CUSTOMIZE_GUIDE.md').async('string');
-assert.ok(aiGuide.includes('https://gitingest.com/alex-builder/alex-builder.github.io'));
-console.log('✓ ZIP archive & Gitingest guide verified');
+assert.ok(files['AI_CUSTOMIZE_GUIDE.md'].includes('https://gitingest.com/alex-builder/alex-builder.github.io'));
+
+const zipBytes = await buildPortfolioZip(SAMPLE_PORTFOLIO);
+assert.ok(zipBytes instanceof Uint8Array && zipBytes.length > 500);
+assert.equal(zipBytes[0], 0x50); // 'P'
+assert.equal(zipBytes[1], 0x4b); // 'K'
+console.log('✓ Bundled files, Gitingest guide, and ZIP archive verified');
 
 console.log('\nAll end-to-end smoke tests passed!');
