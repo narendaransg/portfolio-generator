@@ -1,0 +1,20 @@
+{
+  "name": "@portfolio-gen/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": {
+    "portfolio-gen": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0",
+    "@portfolio-gen/core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
