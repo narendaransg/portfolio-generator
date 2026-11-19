@@ -30,10 +30,6 @@ export function generateSiteFiles(
   };
 }
 
-/**
- * Builds a Uint8Array ZIP archive that works identically in Node.js (WSL/Linux)
- * and Browser Web UIs.
- */
 export async function buildPortfolioZip(
   data: PortfolioData,
   customOverride?: { html?: string; css?: string }

@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.10.0",
-    "@portfolio-gen/core": "*"
+    "@portfolio-gen/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

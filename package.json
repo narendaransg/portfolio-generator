@@ -1,12 +1,9 @@
 {
   "name": "portfolio-generator",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "build:core": "npm run build --workspace=packages/core",
-    "cli": "npm run start --workspace=packages/cli",
-    "web": "npm run dev --workspace=packages/web"
+    "build:core": "pnpm --filter @portfolio-gen/core build",
+    "cli": "pnpm --filter @portfolio-gen/core build && pnpm --filter @portfolio-gen/cli start",
+    "web": "pnpm --filter @portfolio-gen/web dev"
   }
 }

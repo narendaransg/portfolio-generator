@@ -500,9 +500,11 @@ async function main() {
       await fs.writeFile(promptPath, buildCustomAiPrompt(data), 'utf-8');
 
       p.note(
-        `1. We saved your personalized prompt to:\n   ${promptPath}\n` +
-          '2. Copy the contents of AI_PROMPT.txt into ChatGPT, Claude, or Gemini.\n' +
+        [
+          `1. We saved your personalized prompt to: ${promptPath}`,
+          '2. Copy the contents of AI_PROMPT.txt into ChatGPT, Claude, or Gemini.',
           '3. Save the HTML response from the AI as "custom-index.html" in this folder.',
+        ].join('\n'),
         'Custom AI Template (BYO-AI) Instructions'
       );
 
@@ -537,7 +539,7 @@ async function main() {
 
     // Live Preview Server
     const files = generateSiteFiles(data, customOverride);
-    const previewUrl = 'http://localhost:4173'\;
+    const previewUrl = 'http://localhost:4173';
     const server = await startPreviewServer(files['index.html'], 4173);
 
     p.log.info(`Live preview running at ${previewUrl} — opening your browser now...`);
@@ -574,29 +576,31 @@ async function main() {
   // Final Guided Action Summary
   const user = data.meta.githubUsername;
   const repo = data.meta.repoName;
+  const summaryLines = [
+    `ZIP Archive:     ${zipPath}`,
+    `Unpacked Folder: ${outDir}`,
+    '',
+    `STEP 1 — PUBLISH TO GITHUB PAGES (https://${user}.github.io):`,
+    `  • Create a public repo named "${repo}" on GitHub.com`,
+    `  • Either drag-and-drop all files from "${outDir}" on GitHub.com,`,
+    '    OR run these commands:',
+    `      cd "${outDir}"`,
+    '      git init && git branch -M main && git add .',
+    '      git commit -m "feat: launch portfolio"',
+    `      git remote add origin https://github.com/${user}/${repo}.git`,
+    '      git push -u origin main',
+    '',
+    'STEP 2 — TWO BIRDS, ONE STONE (LINKEDIN SYNC):',
+    `  • Open "${path.join(outDir, 'LINKEDIN_SYNC.md')}"`,
+    `  • Paste your updated Headline & About, pin https://${user}.github.io to`,
+    '    LinkedIn "Featured", and publish the pre-written Launch Post!',
+    '',
+    'STEP 3 — UPGRADE ANYTIME WITH GITINGEST + AI:',
+    `  • Open "${path.join(outDir, 'AI_CUSTOMIZE_GUIDE.md')}" to turn your repo into an`,
+    `    AI digest at https://gitingest.com/${user}/${repo}`,
+  ].join('\n');
 
-  p.note(
-    `ZIP Archive:     ${zipPath}\n` +
-      `Unpacked Folder: ${outDir}\n\n` +
-      `STEP 1 — PUBLISH TO GITHUB PAGES (https://${user}.github.io):\n` +
-      `  • Create a public repo named "${repo}" on GitHub.com\n` +
-      `  • Either drag-and-drop all files from "${outDir}" on GitHub.com,\n` +
-      `    OR run these commands:\n` +
-      `      cd "${outDir}"\n` +
-      `      git init && git branch -M main && git add .\n` +
-      `      git commit -m "feat: launch portfolio"\n` +
-      `      git remote add origin https://github.com/${user}/${repo}.git\n` +
-      `      git push -u origin main\n\n` +
-      `STEP 2 — TWO BIRDS, ONE STONE (LINKEDIN SYNC):\n` +
-      `  • Open "${path.join(outDir, 'LINKEDIN_SYNC.md')}"\n` +
-      `  • Paste your updated Headline & About, pin https://${user}.github.io to\n` +
-      `    LinkedIn "Featured", and publish the pre-written Launch Post!\n\n` +
-      `STEP 3 — UPGRADE ANYTIME WITH GITINGEST + AI:\n` +
-      `  • Open "${path.join(outDir, 'AI_CUSTOMIZE_GUIDE.md')}" to turn your repo into an\n` +
-      `    AI digest at https://gitingest.com/${user}/${repo}`,
-    'Your Next 3 Steps (Full Guides Saved Inside Your ZIP!)'
-  );
-
+  p.note(summaryLines, 'Your Next 3 Steps (Full Guides Saved Inside Your ZIP!)');
   p.outro(`All set, ${data.identity.fullName}! Your portfolio is ready to ship.`);
 }
 
